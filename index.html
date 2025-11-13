@@ -1,0 +1,179 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiyat Hesaplayıcı</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#007b00">
+<style>
+  body { font-family: Arial; background: #f9f9f9; padding: 10px; }
+  label { font-size: 16px; margin-right: 5px; display: block; margin-bottom: 5px; }
+  input { padding: 10px; text-align: center; font-size: 16px; margin-bottom: 5px; width: 100%; box-sizing: border-box; }
+  button { padding: 10px 15px; margin: 3px 2px; font-size: 16px; cursor: pointer; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; display: block; overflow-x: auto; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; min-width: 80px; }
+  .total { font-weight: bold; color: #007b00; font-size: 16px; }
+  #savedModels { margin-top: 15px; }
+  #savedModels div { margin-bottom: 5px; }
+  #savedModels button { margin: 2px; padding: 5px 8px; font-size: 14px; }
+  #searchResults { border: 1px solid #ccc; background: #fff; position: absolute; max-height: 120px; overflow-y: auto; display: none; z-index: 10; width: calc(100% - 20px); }
+  #searchResults div { padding: 8px; cursor: pointer; font-size: 16px; }
+  #searchResults div:hover { background: #f0f0f0; }
+  .search-container { position: relative; display: block; }
+</style>
+</head>
+<body>
+
+<h2>💰 Dolar - TL Fiyat Hesaplayıcı</h2>
+
+<div>
+  <label>Model: <input type="text" id="model" placeholder="Model adı"></label>
+  <label>Dolar kuru (TL): <input type="number" id="dollarRate" value="35" step="0.01" oninput="calculateAll()"></label>
+  <button type="button" onclick="saveModel()">Kaydet</button>
+  <button type="button" onclick="clearFields()">Temizle</button>
+</div>
+
+<div class="search-container">
+  <label>Arama: <input type="text" id="searchInput" placeholder="Model ara" oninput="showSuggestions()" autocomplete="off"></label>
+  <div id="searchResults"></div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Tür</th>
+      <th>Dolar Fiyatı</th>
+      <th>TL Karşılığı</th>
+      <th>Kâr (TL)</th>
+      <th>Toplam (TL)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Yan</td><td><input type="number" id="usd1" oninput="calculateAll()"></td><td id="tl1">0</td><td><input type="number" id="profit1" oninput="calculateAll()"></td><td id="total1" class="total">0</td></tr>
+    <tr><td>Oled</td><td><input type="number" id="usd2" oninput="calculateAll()"></td><td id="tl2">0</td><td><input type="number" id="profit2" oninput="calculateAll()"></td><td id="total2" class="total">0</td></tr>
+    <tr><td>Cam Diş</td><td><input type="number" id="usd3" oninput="calculateAll()"></td><td id="tl3">0</td><td><input type="number" id="profit3" oninput="calculateAll()"></td><td id="total3" class="total">0</td></tr>
+    <tr><td>Çıkma</td><td><input type="number" id="usd4" oninput="calculateAll()"></td><td id="tl4">0</td><td><input type="number" id="profit4" oninput="calculateAll()"></td><td id="total4" class="total">0</td></tr>
+    <tr><td>Çin Orj</td><td><input type="number" id="usd5" oninput="calculateAll()"></td><td id="tl5">0</td><td><input type="number" id="profit5" oninput="calculateAll()"></td><td id="total5" class="total">0</td></tr>
+  </tbody>
+</table>
+
+<h3>🧮 Genel Toplam: <span id="grandTotal" style="font-size:20px; color:#007b00;">0</span> TL</h3>
+
+<div id="savedModels">
+  <h3>💾 Kaydedilen Modeller:</h3>
+</div>
+
+<script>
+function calculateAll() {
+  const rate = parseFloat(document.getElementById('dollarRate').value) || 0;
+  let grandTotal = 0;
+  for (let i=1;i<=5;i++){
+    const usd = parseFloat(document.getElementById(`usd${i}`).value) || 0;
+    const profit = parseFloat(document.getElementById(`profit${i}`).value) || 0;
+    const total = usd*rate + profit;
+    const roundedTotal = Math.round(total / 10) * 10;
+    document.getElementById(`tl${i}`).innerText = (usd*rate).toFixed(2);
+    document.getElementById(`total${i}`).innerText = roundedTotal;
+    grandTotal += roundedTotal;
+  }
+  document.getElementById('grandTotal').innerText = grandTotal;
+}
+
+function saveModel() {
+  const modelName = document.getElementById('model').value.trim();
+  if (!modelName) { alert("Lütfen model adını girin."); return; }
+  const data = { rate: parseFloat(document.getElementById('dollarRate').value) || 0, usd: [], profit: [] };
+  for (let i=1;i<=5;i++) {
+    data.usd.push(parseFloat(document.getElementById(`usd${i}`).value) || 0);
+    data.profit.push(parseFloat(document.getElementById(`profit${i}`).value) || 0);
+  }
+  localStorage.setItem(modelName, JSON.stringify(data));
+  alert(`Model "${modelName}" kaydedildi!`);
+  updateSavedModelsList();
+}
+
+function clearFields() {
+  document.getElementById('model').value="";
+  document.getElementById('dollarRate').value="35";
+  for(let i=1;i<=5;i++){
+    document.getElementById(`usd${i}`).value="";
+    document.getElementById(`profit${i}`).value="";
+    document.getElementById(`tl${i}`).innerText="0";
+    document.getElementById(`total${i}`).innerText="0";
+  }
+  document.getElementById('grandTotal').innerText="0";
+}
+
+function updateSavedModelsList(){
+  const container=document.getElementById('savedModels');
+  container.innerHTML="<h3>💾 Kaydedilen Modeller:</h3>";
+  for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i);
+    const div=document.createElement('div');
+    const btnLoad=document.createElement('button'); btnLoad.textContent=key; btnLoad.onclick=()=>loadModel(key);
+    const btnDelete=document.createElement('button'); btnDelete.textContent="Sil"; btnDelete.onclick=()=>deleteModel(key);
+    div.appendChild(btnLoad); div.appendChild(btnDelete);
+    container.appendChild(div);
+  }
+}
+
+function loadModel(modelName){
+  const saved=localStorage.getItem(modelName);
+  if(!saved){alert("Model bulunamadı!"); return;}
+  const data=JSON.parse(saved);
+  document.getElementById('model').value=modelName;
+  document.getElementById('dollarRate').value=data.rate;
+  for(let i=1;i<=5;i++){
+    document.getElementById(`usd${i}`).value=data.usd[i-1];
+    document.getElementById(`profit${i}`).value=data.profit[i-1];
+  }
+  calculateAll();
+}
+
+function deleteModel(modelName){
+  if(confirm(`"${modelName}" silinsin mi?`)){
+    localStorage.removeItem(modelName);
+    updateSavedModelsList();
+    alert(`"${modelName}" silindi!`);
+  }
+}
+
+function showSuggestions(){
+  const input=document.getElementById('searchInput');
+  const results=document.getElementById('searchResults');
+  results.innerHTML="";
+  const val=input.value.trim().toLowerCase();
+  if(!val){results.style.display="none"; return;}
+  const keys=[];
+  for(let i=0;i<localStorage.length;i++) keys.push(localStorage.key(i));
+  const matches=keys.filter(k=>k.toLowerCase().startsWith(val));
+  if(matches.length===0){results.style.display="none"; return;}
+  matches.forEach(m=>{
+    const div=document.createElement('div');
+    div.textContent=m;
+    div.onclick=()=>{ loadModel(m); input.value=""; results.style.display="none"; }
+    results.appendChild(div);
+  });
+  results.style.display="block";
+}
+
+document.addEventListener('click', function(e){
+  const results=document.getElementById('searchResults');
+  if(!document.querySelector('.search-container').contains(e.target)){
+    results.style.display="none";
+  }
+});
+
+updateSavedModelsList();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js').then(reg=>console.log('SW Registered')).catch(err=>console.log('SW Error', err));
+  });
+}
+</script>
+
+</body>
+</html>
